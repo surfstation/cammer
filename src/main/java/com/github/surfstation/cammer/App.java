@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -90,7 +89,7 @@ public class App {
       broadcasts = youtube.liveBroadcasts().list("id,snippet").setBroadcastStatus("completed").setMaxResults(50L).setPageToken(broadcasts.getNextPageToken()).execute();
       for (final LiveBroadcast broadcast : broadcasts.getItems()) {
         try {
-          final long now = new Date().getTime();
+          final long now = System.currentTimeMillis();
           final long diff = now - broadcast.getSnippet().getActualEndTime().getValue();
           if (diff > (7L * 24L * 60L * 60L * 1000L)) { // delete videos more than a week old
             youtube.liveBroadcasts().delete("id").setId(broadcast.getId()).execute();
@@ -107,10 +106,10 @@ public class App {
   public static String createBroadcast(final YouTube youtube) throws IOException {
     final Instant now = Instant.now();
     final String datetime = DateTimeFormatter.ofPattern("EEE LLL dd hh:mma").withZone(ZoneId.of("America/New_York")).format(now);
-    final LiveBroadcastContentDetails details = new LiveBroadcastContentDetails().setEnableAutoStart(true).setEnableDvr(true).setEnableEmbed(true).setEnableLowLatency(true).setLatencyPreference("low").setEnableClosedCaptions(false);
-    final LiveBroadcastSnippet snippet = new LiveBroadcastSnippet().setTitle("The Surf Station 3rd St Wavecam - " + datetime).setDescription("St. Augustine, FL 32080. Recording started at about " + datetime + ".").setScheduledStartTime(new DateTime(now.getEpochSecond() * 1000L)).setScheduledEndTime(new DateTime(now.getEpochSecond() * 1000L));
-    final LiveBroadcastStatus status = new LiveBroadcastStatus().setPrivacyStatus("public");
-    final LiveBroadcast broadcast = new LiveBroadcast().setKind("youtube#liveBroadcast").setSnippet(snippet).setStatus(status).setContentDetails(details);
+    final LiveBroadcast broadcast = new LiveBroadcast().setKind("youtube#liveBroadcast");
+    broadcast.setSnippet(new LiveBroadcastSnippet().setTitle("The Surf Station 3rd St Wavecam - " + datetime).setDescription("St. Augustine, FL 32080. Recording started at about " + datetime + ".").setScheduledStartTime(new DateTime(now.toEpochMilli())).setScheduledEndTime(new DateTime(now.toEpochMilli())));
+    broadcast.setStatus(new LiveBroadcastStatus().setPrivacyStatus("public"));
+    broadcast.setContentDetails(new LiveBroadcastContentDetails().setEnableAutoStart(true).setEnableDvr(true).setEnableEmbed(true).setEnableLowLatency(true).setLatencyPreference("low").setEnableClosedCaptions(false));
     final LiveBroadcast result = youtube.liveBroadcasts().insert("snippet,contentDetails,status", broadcast).execute();
     return youtube.liveBroadcasts().bind(result.getId(), "id").setStreamId("GKOoJhHZiQhDyfvaZ8aAYw1548094394731553").execute().getId();
   }
