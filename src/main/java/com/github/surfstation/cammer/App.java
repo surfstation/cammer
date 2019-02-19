@@ -61,6 +61,7 @@ public class App {
     // user=surfstationcam for the 3rd st wavecam
     final YouTube youtube_surfstationcam = new YouTube.Builder(httpTransport, jsonFactory, credential).setApplicationName("cammer").build();
     transitionActiveBroadcastsToCompleted(youtube_surfstationcam);
+    deleteUpcomingBroadcasts(youtube_surfstationcam);
     final String broadcastId = createBroadcast(youtube_surfstationcam);
     Files.write(Paths.get(args[2]), ("SurfStation.youtube_video_callback_surfstationcam({ \"videoId\": \"" + broadcastId + "\" });\n").getBytes(StandardCharsets.UTF_8));
     deletePriorLiveBroadcasts(youtube_surfstationcam); // this deletes the archived videos and we want to keep those for later viewing for some amount of time
@@ -73,7 +74,25 @@ public class App {
       broadcasts = youtube.liveBroadcasts().list("id").setBroadcastStatus("active").setMaxResults(50L).setPageToken(broadcasts.getNextPageToken()).execute();
       for (final LiveBroadcast broadcast : broadcasts.getItems()) {
         try {
-          result.add(youtube.liveBroadcasts().transition("complete", broadcast.getId(), "id").execute().getId());
+          youtube.liveBroadcasts().transition("complete", broadcast.getId(), "id").execute();
+          result.add(broadcast.getId());
+        } catch (final Exception e) {
+          System.out.println(e.getMessage());
+        }
+      }
+    } while (broadcasts.getNextPageToken() != null);
+    return result;
+  }
+
+  public static List<String> deleteUpcomingBroadcasts(final YouTube youtube) throws IOException {
+    final List<String> result = new LinkedList<String>();
+    LiveBroadcastListResponse broadcasts = new LiveBroadcastListResponse();
+    do {
+      broadcasts = youtube.liveBroadcasts().list("id").setBroadcastStatus("upcoming").setMaxResults(50L).setPageToken(broadcasts.getNextPageToken()).execute();
+      for (final LiveBroadcast broadcast : broadcasts.getItems()) {
+        try {
+          youtube.liveBroadcasts().delete(broadcast.getId()).execute();
+          result.add(broadcast.getId());
         } catch (final Exception e) {
           System.out.println(e.getMessage());
         }
