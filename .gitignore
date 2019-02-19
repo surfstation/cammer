@@ -1,0 +1,6 @@
+.classpath
+.project
+.settings/
+src/main/resources/client_secrets.json
+surfstationcam/
+target/
